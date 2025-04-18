@@ -76,3 +76,7 @@ async function addImagesToOrganizations() {
 
 // Ejecutar la función
 addImagesToOrganizations(); 
+
+
+
+
