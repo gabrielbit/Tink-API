@@ -25,6 +25,8 @@ const User = sequelize.define('User', {
     allowNull: false
   }
 }, {
+  tableName: 'users',
+  freezeTableName: true,
   hooks: {
     beforeSave: async (user) => {
       if (user.changed('password')) {

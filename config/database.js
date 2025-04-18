@@ -1,10 +1,11 @@
 const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
+// Configuración para PostgreSQL utilizando variables de entorno
 const sequelize = new Sequelize(
-  process.env.DB_NAME || 'tink_db',
-  process.env.DB_USER || 'postgres',
-  process.env.DB_PASSWORD || 'postgres',
+  process.env.DB_NAME || 'tink',
+  process.env.DB_USER || 'tink_user',
+  process.env.DB_PASSWORD || 'tinkpass',
   {
     host: process.env.DB_HOST || 'localhost',
     dialect: 'postgres',
