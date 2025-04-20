@@ -3,31 +3,6 @@ const { Op } = require('sequelize');
 const path = require('path');
 const fs = require('fs');
 
-// URL base para las imágenes
-const getBaseUrl = (req) => {
-  return `${req.protocol}://${req.get('host')}`;
-};
-
-// Función para agregar URLs completas a las organizaciones
-const addImageUrls = (organizations, baseUrl) => {
-  if (Array.isArray(organizations)) {
-    return organizations.map(org => addImageUrlsToOrg(org, baseUrl));
-  }
-  return addImageUrlsToOrg(organizations, baseUrl);
-};
-
-// Función para agregar URLs completas a una organización
-const addImageUrlsToOrg = (org, baseUrl) => {
-  const organization = org.toJSON ? org.toJSON() : { ...org };
-  
-  // Agregar URL completa para mainImage si existe
-  if (organization.mainImage) {
-    organization.mainImageUrl = `${baseUrl}/uploads/organizations/${organization.mainImage}`;
-  }
-  
-  return organization;
-};
-
 // Obtener todas las organizaciones con filtros y ordenamiento
 exports.getAllOrganizations = async (req, res) => {
   try {
@@ -86,12 +61,8 @@ exports.getAllOrganizations = async (req, res) => {
     // Calcular total de páginas
     const totalPages = Math.ceil(count / parseInt(limit));
     
-    // Añadir URLs completas de imágenes
-    const baseUrl = getBaseUrl(req);
-    const orgsWithUrls = addImageUrls(organizations, baseUrl);
-    
     return res.status(200).json({
-      organizations: orgsWithUrls,
+      organizations,
       pagination: {
         total: count,
         totalPages,
@@ -114,11 +85,7 @@ exports.getOrganizationById = async (req, res) => {
       return res.status(404).json({ message: 'Organización no encontrada' });
     }
     
-    // Añadir URLs completas de imágenes
-    const baseUrl = getBaseUrl(req);
-    const orgWithUrls = addImageUrls(organization, baseUrl);
-    
-    return res.status(200).json(orgWithUrls);
+    return res.status(200).json(organization);
   } catch (error) {
     console.error('Error al obtener la organización:', error);
     return res.status(500).json({ message: 'Error al obtener la organización' });
@@ -164,11 +131,7 @@ exports.createOrganization = async (req, res) => {
       websiteUrl
     });
     
-    // Añadir URLs completas de imágenes
-    const baseUrl = getBaseUrl(req);
-    const orgWithUrls = addImageUrls(newOrganization, baseUrl);
-    
-    return res.status(201).json(orgWithUrls);
+    return res.status(201).json(newOrganization);
   } catch (error) {
     console.error('Error al crear la organización:', error);
     return res.status(500).json({ message: 'Error al crear la organización' });
@@ -222,11 +185,7 @@ exports.updateOrganization = async (req, res) => {
       websiteUrl: websiteUrl || organization.websiteUrl
     });
     
-    // Añadir URLs completas de imágenes
-    const baseUrl = getBaseUrl(req);
-    const orgWithUrls = addImageUrls(organization, baseUrl);
-    
-    return res.status(200).json(orgWithUrls);
+    return res.status(200).json(organization);
   } catch (error) {
     console.error('Error al actualizar la organización:', error);
     return res.status(500).json({ message: 'Error al actualizar la organización' });

@@ -11,25 +11,32 @@ const authenticateToken = async (req, res, next) => {
       return res.status(401).json({ message: 'Acceso denegado. Token no proporcionado.' });
     }
     
-    // Verificar el token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu_clave_secreta');
-    
-    // Buscar usuario por id
-    const user = await User.findByPk(decoded.id);
-    
-    if (!user) {
-      return res.status(401).json({ message: 'Usuario no encontrado.' });
+    try {
+      // Verificar el token
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu_clave_secreta');
+      
+      // Buscar usuario por id
+      const user = await User.findByPk(decoded.id);
+      
+      if (!user) {
+        return res.status(401).json({ message: 'Usuario no encontrado.' });
+      }
+      
+      // Agregar el usuario a la solicitud
+      req.user = user;
+      
+      next();
+    } catch (tokenError) {
+      if (tokenError.name === 'TokenExpiredError') {
+        return res.status(401).json({ 
+          message: 'Token expirado. Por favor, refresque su token.',
+          expired: true
+        });
+      } else {
+        return res.status(403).json({ message: 'Token inválido.' });
+      }
     }
-    
-    // Agregar el usuario a la solicitud
-    req.user = user;
-    
-    next();
   } catch (error) {
-    if (error instanceof jwt.JsonWebTokenError) {
-      return res.status(403).json({ message: 'Token inválido.' });
-    }
-    
     return res.status(500).json({ message: 'Error en la autenticación.' });
   }
 };
