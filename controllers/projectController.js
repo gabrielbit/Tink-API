@@ -2,6 +2,17 @@ const { Project, Category, Organization } = require('../models/associations');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 
+// Función auxiliar para agregar URLs a las imágenes
+const addImageUrls = (images) => {
+  if (!images || !Array.isArray(images)) return [];
+  
+  return images.map(img => {
+    const imageData = img.toJSON ? img.toJSON() : img;
+    imageData.url = `/uploads/${imageData.filename}`;
+    return imageData;
+  });
+};
+
 // Obtener todos los proyectos con filtros y ordenamiento
 exports.getAllProjects = async (req, res) => {
   try {
@@ -76,8 +87,25 @@ exports.getAllProjects = async (req, res) => {
     // Calcular total de páginas
     const totalPages = Math.ceil(count / parseInt(limit));
     
+    // Obtener imágenes para cada proyecto
+    const projectsWithImages = await Promise.all(
+      projects.map(async project => {
+        const projectData = project.toJSON();
+        const images = await project.getImages();
+        projectData.images = addImageUrls(images);
+        
+        // Añadir la URL de la imagen principal si existe
+        const mainImage = images.find(img => img.is_main === true);
+        if (mainImage) {
+          projectData.mainImageUrl = `/uploads/${mainImage.filename}`;
+        }
+        
+        return projectData;
+      })
+    );
+    
     return res.status(200).json({
-      projects,
+      projects: projectsWithImages,
       pagination: {
         total: count,
         totalPages,
@@ -87,24 +115,19 @@ exports.getAllProjects = async (req, res) => {
     });
   } catch (error) {
     console.error('Error al obtener proyectos:', error);
-    return res.status(500).json({ message: 'Error al obtener proyectos' });
+    return res.status(500).json({ message: 'Error al obtener proyectos', error: error.message });
   }
 };
 
 // Obtener un proyecto por ID
 exports.getProjectById = async (req, res) => {
   try {
-    const project = await Project.findByPk(req.params.id, {
+    const projectId = req.params.id;
+    
+    const project = await Project.findByPk(projectId, {
       include: [
-        {
-          model: Organization,
-          as: 'organization'
-        },
-        {
-          model: Category,
-          as: 'categories',
-          through: { attributes: [] }
-        }
+        { model: Category, as: 'categories' },
+        { model: Organization, as: 'organization' }
       ]
     });
     
@@ -112,10 +135,25 @@ exports.getProjectById = async (req, res) => {
       return res.status(404).json({ message: 'Proyecto no encontrado' });
     }
     
-    return res.status(200).json(project);
+    // Obtener las imágenes asociadas
+    const images = await project.getImages();
+    
+    // Crear un objeto de respuesta con la información del proyecto
+    const projectData = project.toJSON();
+    
+    // Agregar las imágenes al objeto de respuesta
+    projectData.images = addImageUrls(images);
+    
+    // Obtener la imagen principal si existe
+    const mainImage = images.find(img => img.is_main === true);
+    if (mainImage) {
+      projectData.mainImageUrl = `/uploads/${mainImage.filename}`;
+    }
+    
+    return res.status(200).json(projectData);
   } catch (error) {
-    console.error('Error al obtener el proyecto:', error);
-    return res.status(500).json({ message: 'Error al obtener el proyecto' });
+    console.error('Error al obtener proyecto por ID:', error);
+    return res.status(500).json({ message: 'Error al obtener el proyecto', error: error.message });
   }
 };
 

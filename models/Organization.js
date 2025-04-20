@@ -55,4 +55,16 @@ const Organization = sequelize.define('Organization', {
   freezeTableName: true
 });
 
+// Método para obtener todas las imágenes de la organización
+Organization.prototype.getImages = async function() {
+  const Image = require('./Image');
+  return await Image.getOrganizationImages(this.id);
+};
+
+// Método para obtener la imagen principal de la organización
+Organization.prototype.getMainImage = async function() {
+  const Image = require('./Image');
+  return await Image.getMainImage(this.id, 'organization');
+};
+
 module.exports = Organization; 

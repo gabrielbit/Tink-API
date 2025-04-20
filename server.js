@@ -14,6 +14,7 @@ const organizationRoutes = require('./routes/organizationRoutes');
 const projectRoutes = require('./routes/projectRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const testRoutes = require('./routes/testRoutes');
+const imageRoutes = require('./routes/imageRoutes');
 
 // Middleware
 const app = express();
@@ -30,6 +31,7 @@ app.use('/api/organizations', organizationRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/test', testRoutes);
+app.use('/api/images', imageRoutes);
 
 // Ruta básica
 app.get('/', (req, res) => {

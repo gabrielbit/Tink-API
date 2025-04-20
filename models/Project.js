@@ -57,4 +57,16 @@ const Project = sequelize.define('Project', {
   freezeTableName: true
 });
 
+// Método para obtener todas las imágenes del proyecto
+Project.prototype.getImages = async function() {
+  const Image = require('./Image');
+  return await Image.getProjectImages(this.id);
+};
+
+// Método para obtener la imagen principal del proyecto
+Project.prototype.getMainImage = async function() {
+  const Image = require('./Image');
+  return await Image.getMainImage(this.id, 'project');
+};
+
 module.exports = Project; 
