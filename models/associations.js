@@ -2,6 +2,7 @@ const Organization = require('./Organization');
 const Project = require('./Project');
 const Category = require('./Category');
 const ProjectCategory = require('./ProjectCategory');
+const Image = require('./Image');
 
 // Relación entre Organization y Project (1:N)
 Organization.hasMany(Project, {
@@ -29,9 +30,27 @@ Category.belongsToMany(Project, {
   as: 'projects'
 });
 
+// Relaciones con Image (polimórfica)
+Project.hasMany(Image, {
+  foreignKey: 'entity_id',
+  constraints: false,
+  scope: {
+    entity_type: 'project'
+  }
+});
+
+Organization.hasMany(Image, {
+  foreignKey: 'entity_id',
+  constraints: false,
+  scope: {
+    entity_type: 'organization'
+  }
+});
+
 module.exports = {
   Organization,
   Project,
   Category,
-  ProjectCategory
+  ProjectCategory,
+  Image
 }; 

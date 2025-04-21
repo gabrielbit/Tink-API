@@ -3,18 +3,10 @@ const { Op } = require('sequelize');
 const path = require('path');
 const fs = require('fs');
 
-// Obtener todas las organizaciones con filtros y ordenamiento
+// Obtener todas las organizaciones
 exports.getAllOrganizations = async (req, res) => {
   try {
-    const {
-      name,
-      responsibleName,
-      responsibleEmail,
-      sortBy = 'createdAt',
-      sortOrder = 'DESC',
-      limit = 10,
-      page = 1
-    } = req.query;
+    const { name, limit = 10, page = 1, sortBy = 'name', sortOrder = 'ASC' } = req.query;
     
     // Construir el objeto de filtros
     const filters = {};
@@ -23,57 +15,60 @@ exports.getAllOrganizations = async (req, res) => {
       filters.name = { [Op.like]: `%${name}%` };
     }
     
-    if (responsibleName) {
-      filters.responsibleName = { [Op.like]: `%${responsibleName}%` };
-    }
-    
-    if (responsibleEmail) {
-      filters.responsibleEmail = { [Op.like]: `%${responsibleEmail}%` };
-    }
-    
-    // Calcular offset para paginación
-    const offset = (parseInt(page) - 1) * parseInt(limit);
-    
-    // Validar campo de ordenamiento
-    const validSortFields = [
-      'name', 
-      'responsibleName', 
-      'responsibleEmail', 
-      'createdAt', 
-      'updatedAt'
-    ];
-    
-    const orderField = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
-    const orderDirection = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
-    
-    console.log('Ejecutando consulta con filtros:', JSON.stringify(filters));
+    console.log('Ejecutando consulta con filtros:', filters);
     
     // Ejecutar consulta con filtros y ordenamiento
     const { count, rows: organizations } = await Organization.findAndCountAll({
       where: filters,
-      order: [[orderField, orderDirection]],
+      order: [[sortBy, sortOrder]],
       limit: parseInt(limit),
-      offset: offset
+      offset: (parseInt(page) - 1) * parseInt(limit)
     });
     
     console.log(`Se encontraron ${count} organizaciones`);
     
-    // Calcular total de páginas
-    const totalPages = Math.ceil(count / parseInt(limit));
+    // Obtener imágenes para cada organización
+    const organizationsWithImages = await Promise.all(
+      organizations.map(async organization => {
+        const orgData = organization.toJSON();
+        
+        // Agregar la URL completa para la imagen principal si existe
+        if (orgData.mainImage) {
+          orgData.mainImageUrl = `/uploads/organizations/${orgData.mainImage}`;
+        }
+        
+        // Obtener y agregar todas las imágenes asociadas
+        const images = await organization.getImages();
+        orgData.images = addImageUrls(images);
+        
+        return orgData;
+      })
+    );
     
     return res.status(200).json({
-      organizations,
+      organizations: organizationsWithImages,
       pagination: {
         total: count,
-        totalPages,
+        totalPages: Math.ceil(count / parseInt(limit)),
         currentPage: parseInt(page),
         limit: parseInt(limit)
       }
     });
   } catch (error) {
     console.error('Error al obtener organizaciones:', error);
-    return res.status(500).json({ message: 'Error al obtener organizaciones' });
+    return res.status(500).json({ message: 'Error al obtener organizaciones', error: error.message });
   }
+};
+
+// Función auxiliar para agregar URLs a las imágenes
+const addImageUrls = (images) => {
+  if (!images || !Array.isArray(images)) return [];
+  
+  return images.map(img => {
+    const imageData = img.toJSON ? img.toJSON() : img;
+    imageData.url = `/uploads/${imageData.filename}`;
+    return imageData;
+  });
 };
 
 // Obtener una organización por ID
@@ -85,10 +80,24 @@ exports.getOrganizationById = async (req, res) => {
       return res.status(404).json({ message: 'Organización no encontrada' });
     }
     
-    return res.status(200).json(organization);
+    // Obtener las imágenes asociadas
+    const images = await organization.getImages();
+    
+    // Crear un objeto de respuesta con la información de la organización
+    const organizationData = organization.toJSON();
+    
+    // Si hay una imagen principal, agregarla al objeto de respuesta
+    if (organizationData.mainImage) {
+      organizationData.mainImageUrl = `/uploads/organizations/${organizationData.mainImage}`;
+    }
+    
+    // Agregar las imágenes al objeto de respuesta
+    organizationData.images = addImageUrls(images);
+    
+    return res.status(200).json(organizationData);
   } catch (error) {
     console.error('Error al obtener la organización:', error);
-    return res.status(500).json({ message: 'Error al obtener la organización' });
+    return res.status(500).json({ message: 'Error al obtener la organización', error: error.message });
   }
 };
 

@@ -15,6 +15,11 @@ const Category = sequelize.define('Category', {
   description: {
     type: DataTypes.TEXT,
     allowNull: true
+  },
+  color: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: '#3498db'
   }
 }, {
   tableName: 'categories',

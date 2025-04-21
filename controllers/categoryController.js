@@ -42,7 +42,7 @@ exports.getCategoryById = async (req, res) => {
 // Crear una nueva categoría
 exports.createCategory = async (req, res) => {
   try {
-    const { name, description } = req.body;
+    const { name, description, color } = req.body;
     
     // Validación básica
     if (!name) {
@@ -65,7 +65,8 @@ exports.createCategory = async (req, res) => {
     // Crear la categoría
     const newCategory = await Category.create({
       name,
-      description
+      description,
+      color
     });
     
     return res.status(201).json(newCategory);
@@ -78,15 +79,16 @@ exports.createCategory = async (req, res) => {
 // Actualizar una categoría
 exports.updateCategory = async (req, res) => {
   try {
-    const category = await Category.findByPk(req.params.id);
+    const { name, description, color } = req.body;
+    const categoryId = req.params.id;
     
+    // Verificar que la categoría existe
+    const category = await Category.findByPk(categoryId);
     if (!category) {
       return res.status(404).json({ message: 'Categoría no encontrada' });
     }
     
-    const { name, description } = req.body;
-    
-    // Si se cambió el nombre, verificar que no exista otra categoría con ese nombre
+    // Si se intenta cambiar el nombre, verificar que no exista otra categoría con ese nombre
     if (name && name !== category.name) {
       const existingCategory = await Category.findOne({
         where: {
@@ -94,7 +96,7 @@ exports.updateCategory = async (req, res) => {
             [Op.iLike]: name
           },
           id: {
-            [Op.ne]: category.id
+            [Op.ne]: categoryId
           }
         }
       });
@@ -107,7 +109,8 @@ exports.updateCategory = async (req, res) => {
     // Actualizar la categoría
     await category.update({
       name: name || category.name,
-      description: description !== undefined ? description : category.description
+      description: description !== undefined ? description : category.description,
+      color: color || category.color
     });
     
     return res.status(200).json(category);
